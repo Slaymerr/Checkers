@@ -20,87 +20,87 @@ class Game
     // to start checkers
     int play()
     {
-        auto start = chrono::steady_clock::now();
-        if (is_replay)
+        auto start = chrono::steady_clock::now(); //сохраняет текущее время на момент запуска игры
+        if (is_replay) //если был нажат повтор партии
         {
-            logic = Logic(&board, &config);
-            config.reload();
-            board.redraw();
+            logic = Logic(&board, &config); //по параметрам конфига настраивается поведение бота
+            config.reload(); //перезагрузка конфига
+            board.redraw(); //приведение доски к стартовым значениям
         }
         else
         {
-            board.start_draw();
+            board.start_draw(); //загружает спрайты и игровую доску
         }
         is_replay = false;
 
-        int turn_num = -1;
-        bool is_quit = false;
-        const int Max_turns = config("Game", "MaxNumTurns");
+        int turn_num = -1; //текущий ход
+        bool is_quit = false; //нужно ли закончить игру
+        const int Max_turns = config("Game", "MaxNumTurns"); //загружает из конфига значения количества максимальных ходов в партии
         while (++turn_num < Max_turns)
         {
-            beat_series = 0;
-            logic.find_turns(turn_num % 2);
+            beat_series = 0; //?килстришашк
+            logic.find_turns(turn_num % 2); //определяет возможные ходы
             if (logic.turns.empty())
                 break;
-            logic.Max_depth = config("Bot", string((turn_num % 2) ? "Black" : "White") + string("BotLevel"));
-            if (!config("Bot", string("Is") + string((turn_num % 2) ? "Black" : "White") + string("Bot")))
+            logic.Max_depth = config("Bot", string((turn_num % 2) ? "Black" : "White") + string("BotLevel")); //определяет максимальную глубину просчетов ходов, опираясь на значение из конфига
+            if (!config("Bot", string("Is") + string((turn_num % 2) ? "Black" : "White") + string("Bot"))) //определяет совершает ли текущий ход бот
             {
-                auto resp = player_turn(turn_num % 2);
+                auto resp = player_turn(turn_num % 2); //получает ход игрока
                 if (resp == Response::QUIT)
                 {
                     is_quit = true;
-                    break;
+                    break; //при нажатии кнопки выхода приложение закрывается
                 }
                 else if (resp == Response::REPLAY)
                 {
                     is_replay = true;
-                    break;
+                    break; //при нажатии кнопки игра начинается заново
                 }
-                else if (resp == Response::BACK)
+                else if (resp == Response::BACK) //при нажатии кпоки назад возвращет ходы
                 {
-                    if (config("Bot", string("Is") + string((1 - turn_num % 2) ? "Black" : "White") + string("Bot")) &&
-                        !beat_series && board.history_mtx.size() > 2)
+                    if (config("Bot", string("Is") + string((1 - turn_num % 2) ? "Black" : "White") + string("Bot")) &&  //определяет чей был предыдущий ход
+                        !beat_series && board.history_mtx.size() > 2) 
                     {
-                        board.rollback();
+                        board.rollback(); //вернуть доску к предыдущему состоянию
                         --turn_num;
                     }
                     if (!beat_series)
                         --turn_num;
 
-                    board.rollback();
+                    board.rollback(); //вернуть доску к предыдущему состоянию, возвращая ход текущему игроку
                     --turn_num;
-                    beat_series = 0;
+                    beat_series = 0; 
                 }
             }
             else
-                bot_turn(turn_num % 2);
+                bot_turn(turn_num % 2); //расчитывается ход бота
         }
-        auto end = chrono::steady_clock::now();
+        auto end = chrono::steady_clock::now(); //сохраняет время на момент конца хода
         ofstream fout(project_path + "log.txt", ios_base::app);
         fout << "Game time: " << (int)chrono::duration<double, milli>(end - start).count() << " millisec\n";
-        fout.close();
+        fout.close(); //логирует события совершенные за ход
 
         if (is_replay)
-            return play();
+            return play(); //если реплей, то возвращаемся на начало хода
         if (is_quit)
-            return 0;
-        int res = 2;
-        if (turn_num == Max_turns)
+            return 0; //выход из игры
+        int res = 2; //результат если игру выйгралм черные
+        if (turn_num == Max_turns) 
         {
-            res = 0;
+            res = 0; //результат, если игра закончилась ничьей
         }
         else if (turn_num % 2)
         {
-            res = 1;
+            res = 1; //результат, если игру выйграли белые
         }
-        board.show_final(res);
-        auto resp = hand.wait();
-        if (resp == Response::REPLAY)
+        board.show_final(res); //вывести победителя
+        auto resp = hand.wait(); //считать устройство ввода
+        if (resp == Response::REPLAY) //нужно ли начать игру заново
         {
             is_replay = true;
             return play();
         }
-        return res;
+        return res; 
     }
 
   private:

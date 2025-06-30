@@ -12,17 +12,17 @@ class Config
     {
         reload();
     }
-
-    void reload()
+    
+    void reload() //метод который открывает заново файл настройки и считывает в переменную
     {
-        std::ifstream fin(project_path + "settings.json");
-        fin >> config;
-        fin.close();
+        std::ifstream fin(project_path + "settings.json"); //открывает файл по пути project_path с названием settings.json
+        fin >> config; //считывает данные в переменныю config
+        fin.close(); //закрывает считывание файла
     }
 
-    auto operator()(const string &setting_dir, const string &setting_name) const
+    auto operator()(const string &setting_dir, const string &setting_name) const //для более удобного доступа к данным, полученные из файла настройки
     {
-        return config[setting_dir][setting_name];
+        return config[setting_dir][setting_name]; //возвращает значение json по ключу
     }
 
   private:
