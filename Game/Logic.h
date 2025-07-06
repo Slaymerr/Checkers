@@ -39,49 +39,50 @@ class Logic
 private:
     vector<vector<POS_T>> make_turn(vector<vector<POS_T>> mtx, move_pos turn) const
     {
-        if (turn.xb != -1)
-            mtx[turn.xb][turn.yb] = 0;
-        if ((mtx[turn.x][turn.y] == 1 && turn.x2 == 0) || (mtx[turn.x][turn.y] == 2 && turn.x2 == 7))
-            mtx[turn.x][turn.y] += 2;
-        mtx[turn.x2][turn.y2] = mtx[turn.x][turn.y];
-        mtx[turn.x][turn.y] = 0;
+        if (turn.xb != -1) //если серия есть
+            mtx[turn.xb][turn.yb] = 0; //поставить значение пустой клетки по координатам серии
+        if ((mtx[turn.x][turn.y] == 1 && turn.x2 == 0) || (mtx[turn.x][turn.y] == 2 && turn.x2 == 7))//если белая или черная шашка доходит до вражеского края доски
+            mtx[turn.x][turn.y] += 2; //шашка становится королевой
+        mtx[turn.x2][turn.y2] = mtx[turn.x][turn.y]; //копирует тип фигуры в новую клетку
+        mtx[turn.x][turn.y] = 0; //ставим пустую клетку предыдущему месту
         return mtx;
     }
 
-    double calc_score(const vector<vector<POS_T>> &mtx, const bool first_bot_color) const
+    double calc_score(const vector<vector<POS_T>> &mtx, const bool first_bot_color) const //дает оценку ходу (эвристика хода)
     {
         // color - who is max player
-        double w = 0, wq = 0, b = 0, bq = 0;
+        double w = 0, wq = 0, b = 0, bq = 0; //количество играбельных фигур на поле данного типа
         for (POS_T i = 0; i < 8; ++i)
         {
-            for (POS_T j = 0; j < 8; ++j)
+            for (POS_T j = 0; j < 8; ++j) 
             {
-                w += (mtx[i][j] == 1);
+                //подсчет всех фигур в игре
+                w += (mtx[i][j] == 1); 
                 wq += (mtx[i][j] == 3);
                 b += (mtx[i][j] == 2);
                 bq += (mtx[i][j] == 4);
-                if (scoring_mode == "NumberAndPotential")
+                if (scoring_mode == "NumberAndPotential") //подсчитывает лидирующего игрока на доске для данного ход, опираясь на приближение фигур к вражеской половине доски
                 {
-                    w += 0.05 * (mtx[i][j] == 1) * (7 - i);
+                    w += 0.05 * (mtx[i][j] == 1) * (7 - i); 
                     b += 0.05 * (mtx[i][j] == 2) * (i);
                 }
             }
         }
-        if (!first_bot_color)
+        if (!first_bot_color) //инверсирует подсчитанные очки, если цвет хода белых
         {
             swap(b, w);
             swap(bq, wq);
         }
-        if (w + wq == 0)
-            return INF;
+        if (w + wq == 0) 
+            return INF; //возвращает бесконечность(гарантированную победу) если на доске были убраны все фигуры противника
         if (b + bq == 0)
-            return 0;
+            return 0; //возвращает 0(худший ход) если на доске будут убраны все свои фигуры
         int q_coef = 4;
-        if (scoring_mode == "NumberAndPotential")
+        if (scoring_mode == "NumberAndPotential") //сменить коэффициент влияния присутствия королев на счет
         {
             q_coef = 5;
         }
-        return (b + bq * q_coef) / (w + wq * q_coef);
+        return (b + bq * q_coef) / (w + wq * q_coef); //возвращает отношение подсчитанных оценок черных к белым
     }
 
     double find_first_best_turn(vector<vector<POS_T>> mtx, const bool color, const POS_T x, const POS_T y, size_t state,
@@ -176,20 +177,20 @@ private:
     }
 
 public:
-    void find_turns(const bool color)
+    void find_turns(const bool color) //перегрузка функция для простого использования с параметром по умолчанию
     {
         find_turns(color, board->get_board());
     }
 
-    void find_turns(const POS_T x, const POS_T y)
+    void find_turns(const POS_T x, const POS_T y) //поиск нужного хода для игрока
     {
         find_turns(x, y, board->get_board());
-    }
+    } 
 
 private:
     void find_turns(const bool color, const vector<vector<POS_T>> &mtx)
     {
-        vector<move_pos> res_turns;
+        vector<move_pos> res_turns; //вектор с найденными возможными ходами
         bool have_beats_before = false;
         for (POS_T i = 0; i < 8; ++i)
         {
@@ -197,7 +198,7 @@ private:
             {
                 if (mtx[i][j] && mtx[i][j] % 2 != color)
                 {
-                    find_turns(i, j, mtx);
+                    find_turns(i, j, mtx); //найти ход для шашки с данными координатами
                     if (have_beats && !have_beats_before)
                     {
                         have_beats_before = true;
@@ -205,21 +206,21 @@ private:
                     }
                     if ((have_beats_before && have_beats) || !have_beats_before)
                     {
-                        res_turns.insert(res_turns.end(), turns.begin(), turns.end());
+                        res_turns.insert(res_turns.end(), turns.begin(), turns.end()); //записать хода в найденные ходы
                     }
                 }
             }
         }
         turns = res_turns;
-        shuffle(turns.begin(), turns.end(), rand_eng);
+        shuffle(turns.begin(), turns.end(), rand_eng); //изменение порядка найденных ходов
         have_beats = have_beats_before;
     }
 
-    void find_turns(const POS_T x, const POS_T y, const vector<vector<POS_T>> &mtx)
+    void find_turns(const POS_T x, const POS_T y, const vector<vector<POS_T>> &mtx) //функция нахождения ходов для каждой отдельной пешки
     {
-        turns.clear();
+        turns.clear(); 
         have_beats = false;
-        POS_T type = mtx[x][y];
+        POS_T type = mtx[x][y]; //определяет тип шашки 1 белая шашка 2 черная шашка 3 белая дамка 5 черная дамка
         // check beats
         switch (type)
         {
@@ -230,17 +231,17 @@ private:
             {
                 for (POS_T j = y - 2; j <= y + 2; j += 4)
                 {
-                    if (i < 0 || i > 7 || j < 0 || j > 7)
+                    if (i < 0 || i > 7 || j < 0 || j > 7) //шашка находится в пределах поля
                         continue;
-                    POS_T xb = (x + i) / 2, yb = (y + j) / 2;
-                    if (mtx[i][j] || !mtx[xb][yb] || mtx[xb][yb] % 2 == type % 2)
+                    POS_T xb = (x + i) / 2, yb = (y + j) / 2; //находим координаты хода
+                    if (mtx[i][j] || !mtx[xb][yb] || mtx[xb][yb] % 2 == type % 2) //проверяет, что клетка из которой мы ходим не пустая и клетка в которую ходим пустая
                         continue;
-                    turns.emplace_back(x, y, i, j, xb, yb);
+                    turns.emplace_back(x, y, i, j, xb, yb); //записываем ход как 1 из возможных
                 }
             }
             break;
         default:
-            // check queens
+            // check queens(поиск хода для королевы аналогично для шашки)
             for (POS_T i = -1; i <= 1; i += 2)
             {
                 for (POS_T j = -1; j <= 1; j += 2)
@@ -306,16 +307,16 @@ private:
     }
 
   public:
-    vector<move_pos> turns;
-    bool have_beats;
-    int Max_depth;
+    vector<move_pos> turns; //найденные возможные ходы 
+    bool have_beats; //есть ли за ход была съедена шашка
+    int Max_depth; //глубина просчета хода для бота
 
   private:
-    default_random_engine rand_eng;
-    string scoring_mode;
-    string optimization;
-    vector<move_pos> next_move;
-    vector<int> next_best_state;
-    Board *board;
-    Config *config;
+    default_random_engine rand_eng; //генератор случайных чисел
+    string scoring_mode; //изменяет коэффициент очков хода для фигур типа "дамка"
+    string optimization; //отвечает за преждевренный выход при проходе в глубину для поиска наиболее успешного хода
+    vector<move_pos> next_move; //хранит следующий наиболее успешный ход для бота
+    vector<int> next_best_state; //хранит наиболее высокий счет для следующего хода
+    Board *board; //класс отвечающий за логику игрового поля и его отрисовку
+    Config *config; //класс хранящий и считывающий данные из settings.json 
 };

@@ -135,67 +135,67 @@ class Game
     Response player_turn(const bool color)
     {
         // return 1 if quit
-        vector<pair<POS_T, POS_T>> cells;
+        vector<pair<POS_T, POS_T>> cells; //создает массив для возможных ходов
         for (auto turn : logic.turns)
         {
-            cells.emplace_back(turn.x, turn.y);
+            cells.emplace_back(turn.x, turn.y); //сохраняет данные под возможные ходы
         }
-        board.highlight_cells(cells);
+        board.highlight_cells(cells); //подсвечивает возможные ходы
         move_pos pos = {-1, -1, -1, -1};
-        POS_T x = -1, y = -1;
+        POS_T x = -1, y = -1; //сбрасывает переменные в их начальное значение
         // trying to make first move
         while (true)
         {
-            auto resp = hand.get_cell();
-            if (get<0>(resp) != Response::CELL)
-                return get<0>(resp);
-            pair<POS_T, POS_T> cell{get<1>(resp), get<2>(resp)};
+            auto resp = hand.get_cell(); //ожидание ивента от игрока или выбраной им клетки
+            if (get<0>(resp) != Response::CELL) //выход из цикла, если событие не выбор клетки
+                return get<0>(resp); 
+            pair<POS_T, POS_T> cell{get<1>(resp), get<2>(resp)}; //создает переменную с выбраной игроком клетки
 
             bool is_correct = false;
             for (auto turn : logic.turns)
             {
-                if (turn.x == cell.first && turn.y == cell.second)
+                if (turn.x == cell.first && turn.y == cell.second) //на выбраной клетке есть фигура игрока
                 {
                     is_correct = true;
                     break;
                 }
-                if (turn == move_pos{x, y, cell.first, cell.second})
+                if (turn == move_pos{x, y, cell.first, cell.second}) //клетка с возможным ходом
                 {
                     pos = turn;
                     break;
                 }
             }
             if (pos.x != -1)
-                break;
+                break; //если не дефолтная позиция выйти из цикла
             if (!is_correct)
             {
                 if (x != -1)
                 {
                     board.clear_active();
                     board.clear_highlight();
-                    board.highlight_cells(cells);
+                    board.highlight_cells(cells); //если фигура не выбрана, посветить допустимые ходы
                 }
                 x = -1;
                 y = -1;
-                continue;
+                continue; //если фигура не выбрана, начать цикл сначала
             }
             x = cell.first;
             y = cell.second;
             board.clear_highlight();
-            board.set_active(x, y);
+            board.set_active(x, y); //подсветить выбраную фигуру
             vector<pair<POS_T, POS_T>> cells2;
             for (auto turn : logic.turns)
             {
                 if (turn.x == x && turn.y == y)
                 {
-                    cells2.emplace_back(turn.x2, turn.y2);
+                    cells2.emplace_back(turn.x2, turn.y2); //собрать массив возможных ходов выбраной фигуры
                 }
             }
-            board.highlight_cells(cells2);
+            board.highlight_cells(cells2); //подсветить этот массив
         }
         board.clear_highlight();
         board.clear_active();
-        board.move_piece(pos, pos.xb != -1);
+        board.move_piece(pos, pos.xb != -1); //если игрок подтвердил ход, очистить подсветы и передвинуть фигуру
         if (pos.xb == -1)
             return Response::OK;
         // continue beating while can
@@ -203,7 +203,7 @@ class Game
         while (true)
         {
             logic.find_turns(pos.x2, pos.y2);
-            if (!logic.have_beats)
+            if (!logic.have_beats) //была ли съедена фигура за ход
                 break;
 
             vector<pair<POS_T, POS_T>> cells;
@@ -211,12 +211,12 @@ class Game
             {
                 cells.emplace_back(turn.x2, turn.y2);
             }
-            board.highlight_cells(cells);
-            board.set_active(pos.x2, pos.y2);
+            board.highlight_cells(cells); //подсвечивает все ходы для серии ходов
+            board.set_active(pos.x2, pos.y2); // подсвечивает выбраную фигуру
             // trying to make move
             while (true)
             {
-                auto resp = hand.get_cell();
+                auto resp = hand.get_cell(); //на какую ячейку кликнул игрок или какие действия он совершил
                 if (get<0>(resp) != Response::CELL)
                     return get<0>(resp);
                 pair<POS_T, POS_T> cell{get<1>(resp), get<2>(resp)};
@@ -231,13 +231,13 @@ class Game
                         break;
                     }
                 }
-                if (!is_correct)
-                    continue;
+                if (!is_correct) 
+                    continue; //повторение кода выше 
 
                 board.clear_highlight();
                 board.clear_active();
                 beat_series += 1;
-                board.move_piece(pos, beat_series);
+                board.move_piece(pos, beat_series); //серия увеличивается на 1 и переставляет фигуру по итогам серии ходов
                 break;
             }
         }
@@ -253,3 +253,4 @@ class Game
     int beat_series;
     bool is_replay = false;
 };
+
