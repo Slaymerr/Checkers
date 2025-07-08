@@ -1,6 +1,8 @@
 #pragma once
 #include <random>
 #include <vector>
+#include <algorithm>
+#include <ctime>
 
 #include "../Models/Move.h"
 #include "Board.h"
@@ -10,24 +12,29 @@ const int INF = 1e9;
 
 class Logic
 {
-  public:
-    Logic(Board *board, Config *config) : board(board), config(config)
+public:
+    Logic(Board* board, Config* config) : board(board), config(config)
     {
-        rand_eng = std::default_random_engine (
+        rand_eng = std::default_random_engine(
             !((*config)("Bot", "NoRandom")) ? unsigned(time(0)) : 0);
         scoring_mode = (*config)("Bot", "BotScoringType");
         optimization = (*config)("Bot", "Optimization");
     }
 
-    vector<move_pos> find_best_turns(const bool color)
+    // Главная функция для поиска наилучшей последовательности ходов для бота
+    // color — цвет бота (0 или 1)
+    // Возвращает последовательность ходов, ведущих к наилучшему результату
+    std::vector<move_pos> find_best_turns(const bool color)
     {
         next_best_state.clear();
         next_move.clear();
 
+        // Запускаем минимакс с альфа-бета отсечением с текущего состояния доски
         find_first_best_turn(board->get_board(), color, -1, -1, 0);
 
         int cur_state = 0;
-        vector<move_pos> res;
+        std::vector<move_pos> res;
+        // Собираем последовательность ходов, ведущих к наилучшему результату
         do
         {
             res.push_back(next_move[cur_state]);
@@ -37,85 +44,95 @@ class Logic
     }
 
 private:
-    vector<vector<POS_T>> make_turn(vector<vector<POS_T>> mtx, move_pos turn) const
+    // Делает ход на копии доски и возвращает новое состояние доски
+    std::vector<std::vector<POS_T>> make_turn(std::vector<std::vector<POS_T>> mtx, move_pos turn) const
     {
-        if (turn.xb != -1) //если серия есть
-            mtx[turn.xb][turn.yb] = 0; //поставить значение пустой клетки по координатам серии
-        if ((mtx[turn.x][turn.y] == 1 && turn.x2 == 0) || (mtx[turn.x][turn.y] == 2 && turn.x2 == 7))//если белая или черная шашка доходит до вражеского края доски
-            mtx[turn.x][turn.y] += 2; //шашка становится королевой
-        mtx[turn.x2][turn.y2] = mtx[turn.x][turn.y]; //копирует тип фигуры в новую клетку
-        mtx[turn.x][turn.y] = 0; //ставим пустую клетку предыдущему месту
+        if (turn.xb != -1)
+            mtx[turn.xb][turn.yb] = 0;
+        if ((mtx[turn.x][turn.y] == 1 && turn.x2 == 0) || (mtx[turn.x][turn.y] == 2 && turn.x2 == 7))
+            mtx[turn.x][turn.y] += 2;
+        mtx[turn.x2][turn.y2] = mtx[turn.x][turn.y];
+        mtx[turn.x][turn.y] = 0;
         return mtx;
     }
 
-    double calc_score(const vector<vector<POS_T>> &mtx, const bool first_bot_color) const //дает оценку ходу (эвристика хода)
+    // Оценка позиции (эвристика)
+    double calc_score(const std::vector<std::vector<POS_T>>& mtx, const bool first_bot_color) const
     {
-        // color - who is max player
-        double w = 0, wq = 0, b = 0, bq = 0; //количество играбельных фигур на поле данного типа
+        double w = 0, wq = 0, b = 0, bq = 0;
         for (POS_T i = 0; i < 8; ++i)
         {
-            for (POS_T j = 0; j < 8; ++j) 
+            for (POS_T j = 0; j < 8; ++j)
             {
-                //подсчет всех фигур в игре
-                w += (mtx[i][j] == 1); 
+                w += (mtx[i][j] == 1);
                 wq += (mtx[i][j] == 3);
                 b += (mtx[i][j] == 2);
                 bq += (mtx[i][j] == 4);
-                if (scoring_mode == "NumberAndPotential") //подсчитывает лидирующего игрока на доске для данного ход, опираясь на приближение фигур к вражеской половине доски
+                if (scoring_mode == "NumberAndPotential")
                 {
-                    w += 0.05 * (mtx[i][j] == 1) * (7 - i); 
+                    w += 0.05 * (mtx[i][j] == 1) * (7 - i);
                     b += 0.05 * (mtx[i][j] == 2) * (i);
                 }
             }
         }
-        if (!first_bot_color) //инверсирует подсчитанные очки, если цвет хода белых
+        if (!first_bot_color)
         {
-            swap(b, w);
-            swap(bq, wq);
+            std::swap(b, w);
+            std::swap(bq, wq);
         }
-        if (w + wq == 0) 
-            return INF; //возвращает бесконечность(гарантированную победу) если на доске были убраны все фигуры противника
+        if (w + wq == 0)
+            return INF;
         if (b + bq == 0)
-            return 0; //возвращает 0(худший ход) если на доске будут убраны все свои фигуры
+            return 0;
         int q_coef = 4;
-        if (scoring_mode == "NumberAndPotential") //сменить коэффициент влияния присутствия королев на счет
+        if (scoring_mode == "NumberAndPotential")
         {
             q_coef = 5;
         }
-        return (b + bq * q_coef) / (w + wq * q_coef); //возвращает отношение подсчитанных оценок черных к белым
+        return (b + bq * q_coef) / (w + wq * q_coef);
     }
 
-    double find_first_best_turn(vector<vector<POS_T>> mtx, const bool color, const POS_T x, const POS_T y, size_t state,
-                                double alpha = -1)
+    // Рекурсивная функция минимакс для поиска первого лучшего хода
+    // mtx — текущее состояние доски
+    // color — чей ход (0 — белые, 1 — чёрные)
+    // x, y — координаты шашки, если продолжается серия побитий
+    // state — индекс состояния в списке next_move/next_best_state
+    // alpha — текущая нижняя граница для альфа-бета отсечения
+    double find_first_best_turn(std::vector<std::vector<POS_T>> mtx, const bool color, const POS_T x, const POS_T y, size_t state,
+        double alpha = -1)
     {
         next_best_state.push_back(-1);
         next_move.emplace_back(-1, -1, -1, -1);
         double best_score = -1;
+
+        // Если это не начальное состояние, ищем возможные ходы для текущей шашки
         if (state != 0)
             find_turns(x, y, mtx);
         auto turns_now = turns;
         bool have_beats_now = have_beats;
 
+        // Если нет обязательных побитий и это не начальное состояние, переходим к рекурсивному поиску для противника
         if (!have_beats_now && state != 0)
         {
             return find_best_turns_rec(mtx, 1 - color, 0, alpha);
         }
 
-        vector<move_pos> best_moves;
-        vector<int> best_states;
-
+        // Перебираем все возможные ходы
         for (auto turn : turns_now)
         {
             size_t next_state = next_move.size();
             double score;
             if (have_beats_now)
             {
+                // Если есть побития, продолжаем серию ходов для того же игрока
                 score = find_first_best_turn(make_turn(mtx, turn), color, turn.x2, turn.y2, next_state, best_score);
             }
             else
             {
+                // Иначе передаём ход противнику
                 score = find_best_turns_rec(make_turn(mtx, turn), 1 - color, 0, best_score);
             }
+            // Сохраняем лучший результат и соответствующий ход
             if (score > best_score)
             {
                 best_score = score;
@@ -126,71 +143,92 @@ private:
         return best_score;
     }
 
-    double find_best_turns_rec(vector<vector<POS_T>> mtx, const bool color, const size_t depth, double alpha = -1,
-                               double beta = INF + 1, const POS_T x = -1, const POS_T y = -1)
+    // Рекурсивная функция минимакс с альфа-бета отсечением
+    // mtx — состояние доски
+    // color — чей ход
+    // depth — текущая глубина поиска
+    // alpha, beta — границы для альфа-бета отсечения
+    // x, y — координаты шашки, если продолжается серия побитий
+    double find_best_turns_rec(std::vector<std::vector<POS_T>> mtx, const bool color, const size_t depth, double alpha = -1,
+        double beta = INF + 1, const POS_T x = -1, const POS_T y = -1)
     {
+        // Если достигнута максимальная глубина поиска, оцениваем позицию
         if (depth == Max_depth)
         {
             return calc_score(mtx, (depth % 2 == color));
         }
+
+        // Если заданы координаты, ищем ходы для конкретной шашки, иначе для всех шашек текущего цвета
         if (x != -1)
         {
             find_turns(x, y, mtx);
         }
         else
             find_turns(color, mtx);
+
         auto turns_now = turns;
         bool have_beats_now = have_beats;
 
+        // Если нет обязательных побитий и это не начальное состояние, передаём ход противнику
         if (!have_beats_now && x != -1)
         {
             return find_best_turns_rec(mtx, 1 - color, depth + 1, alpha, beta);
         }
 
+        // Если ходов нет — возвращаем оценку проигрыша или выигрыша
         if (turns.empty())
             return (depth % 2 ? 0 : INF);
 
         double min_score = INF + 1;
         double max_score = -1;
+
+        // Перебираем все возможные ходы
         for (auto turn : turns_now)
         {
             double score = 0.0;
             if (!have_beats_now && x == -1)
             {
+                // Если нет обязательных побитий, меняем игрока и увеличиваем глубину
                 score = find_best_turns_rec(make_turn(mtx, turn), 1 - color, depth + 1, alpha, beta);
             }
             else
             {
+                // Если есть побития, продолжаем ход того же игрока
                 score = find_best_turns_rec(make_turn(mtx, turn), color, depth, alpha, beta, turn.x2, turn.y2);
             }
-            min_score = min(min_score, score);
-            max_score = max(max_score, score);
-            // alpha-beta pruning
+
+            min_score = std::min(min_score, score);
+            max_score = std::max(max_score, score);
+
+            // Альфа-бета отсечение: если найдено заведомо худшее/лучшее, прекращаем перебор
             if (depth % 2)
-                alpha = max(alpha, max_score);
+                alpha = std::max(alpha, max_score);
             else
-                beta = min(beta, min_score);
+                beta = std::min(beta, min_score);
+
             if (optimization != "O0" && alpha >= beta)
                 return (depth % 2 ? max_score + 1 : min_score - 1);
         }
+
+        // Возвращаем максимальное или минимальное значение в зависимости от уровня дерева
         return (depth % 2 ? max_score : min_score);
     }
 
 public:
-    void find_turns(const bool color) //перегрузка функция для простого использования с параметром по умолчанию
+    void find_turns(const bool color)
     {
         find_turns(color, board->get_board());
     }
 
-    void find_turns(const POS_T x, const POS_T y) //поиск нужного хода для игрока
+    void find_turns(const POS_T x, const POS_T y)
     {
         find_turns(x, y, board->get_board());
-    } 
+    }
 
 private:
-    void find_turns(const bool color, const vector<vector<POS_T>> &mtx)
+    void find_turns(const bool color, const std::vector<std::vector<POS_T>>& mtx)
     {
-        vector<move_pos> res_turns; //вектор с найденными возможными ходами
+        std::vector<move_pos> res_turns;
         bool have_beats_before = false;
         for (POS_T i = 0; i < 8; ++i)
         {
@@ -198,7 +236,7 @@ private:
             {
                 if (mtx[i][j] && mtx[i][j] % 2 != color)
                 {
-                    find_turns(i, j, mtx); //найти ход для шашки с данными координатами
+                    find_turns(i, j, mtx);
                     if (have_beats && !have_beats_before)
                     {
                         have_beats_before = true;
@@ -206,42 +244,39 @@ private:
                     }
                     if ((have_beats_before && have_beats) || !have_beats_before)
                     {
-                        res_turns.insert(res_turns.end(), turns.begin(), turns.end()); //записать хода в найденные ходы
+                        res_turns.insert(res_turns.end(), turns.begin(), turns.end());
                     }
                 }
             }
         }
         turns = res_turns;
-        shuffle(turns.begin(), turns.end(), rand_eng); //изменение порядка найденных ходов
+        std::shuffle(turns.begin(), turns.end(), rand_eng);
         have_beats = have_beats_before;
     }
 
-    void find_turns(const POS_T x, const POS_T y, const vector<vector<POS_T>> &mtx) //функция нахождения ходов для каждой отдельной пешки
+    void find_turns(const POS_T x, const POS_T y, const std::vector<std::vector<POS_T>>& mtx)
     {
-        turns.clear(); 
+        turns.clear();
         have_beats = false;
-        POS_T type = mtx[x][y]; //определяет тип шашки 1 белая шашка 2 черная шашка 3 белая дамка 5 черная дамка
-        // check beats
+        POS_T type = mtx[x][y];
         switch (type)
         {
         case 1:
         case 2:
-            // check pieces
             for (POS_T i = x - 2; i <= x + 2; i += 4)
             {
                 for (POS_T j = y - 2; j <= y + 2; j += 4)
                 {
-                    if (i < 0 || i > 7 || j < 0 || j > 7) //шашка находится в пределах поля
+                    if (i < 0 || i > 7 || j < 0 || j > 7)
                         continue;
-                    POS_T xb = (x + i) / 2, yb = (y + j) / 2; //находим координаты хода
-                    if (mtx[i][j] || !mtx[xb][yb] || mtx[xb][yb] % 2 == type % 2) //проверяет, что клетка из которой мы ходим не пустая и клетка в которую ходим пустая
+                    POS_T xb = (x + i) / 2, yb = (y + j) / 2;
+                    if (mtx[i][j] || !mtx[xb][yb] || mtx[xb][yb] % 2 == type % 2)
                         continue;
-                    turns.emplace_back(x, y, i, j, xb, yb); //записываем ход как 1 из возможных
+                    turns.emplace_back(x, y, i, j, xb, yb);
                 }
             }
             break;
         default:
-            // check queens(поиск хода для королевы аналогично для шашки)
             for (POS_T i = -1; i <= 1; i += 2)
             {
                 for (POS_T j = -1; j <= 1; j += 2)
@@ -267,7 +302,6 @@ private:
             }
             break;
         }
-        // check other turns
         if (!turns.empty())
         {
             have_beats = true;
@@ -277,19 +311,17 @@ private:
         {
         case 1:
         case 2:
-            // check pieces
+        {
+            POS_T i = ((type % 2) ? x - 1 : x + 1);
+            for (POS_T j = y - 1; j <= y + 1; j += 2)
             {
-                POS_T i = ((type % 2) ? x - 1 : x + 1);
-                for (POS_T j = y - 1; j <= y + 1; j += 2)
-                {
-                    if (i < 0 || i > 7 || j < 0 || j > 7 || mtx[i][j])
-                        continue;
-                    turns.emplace_back(x, y, i, j);
-                }
-                break;
+                if (i < 0 || i > 7 || j < 0 || j > 7 || mtx[i][j])
+                    continue;
+                turns.emplace_back(x, y, i, j);
             }
+            break;
+        }
         default:
-            // check queens
             for (POS_T i = -1; i <= 1; i += 2)
             {
                 for (POS_T j = -1; j <= 1; j += 2)
@@ -306,17 +338,17 @@ private:
         }
     }
 
-  public:
-    vector<move_pos> turns; //найденные возможные ходы 
-    bool have_beats; //есть ли за ход была съедена шашка
-    int Max_depth; //глубина просчета хода для бота
+public:
+    std::vector<move_pos> turns;
+    bool have_beats;
+    int Max_depth;
 
-  private:
-    default_random_engine rand_eng; //генератор случайных чисел
-    string scoring_mode; //изменяет коэффициент очков хода для фигур типа "дамка"
-    string optimization; //отвечает за преждевренный выход при проходе в глубину для поиска наиболее успешного хода
-    vector<move_pos> next_move; //хранит следующий наиболее успешный ход для бота
-    vector<int> next_best_state; //хранит наиболее высокий счет для следующего хода
-    Board *board; //класс отвечающий за логику игрового поля и его отрисовку
-    Config *config; //класс хранящий и считывающий данные из settings.json 
+private:
+    std::default_random_engine rand_eng;
+    std::string scoring_mode;
+    std::string optimization;
+    std::vector<move_pos> next_move;
+    std::vector<int> next_best_state;
+    Board* board;
+    Config* config;
 };
