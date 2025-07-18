@@ -38,7 +38,7 @@ class Game
         const int Max_turns = config("Game", "MaxNumTurns"); //загружает из конфига значения количества максимальных ходов в партии
         while (++turn_num < Max_turns)
         {
-            beat_series = 0; //?килстришашк
+            beat_series = 0; //серия ходов шашек
             logic.find_turns(turn_num % 2); //определяет возможные ходы
             if (logic.turns.empty())
                 break;
