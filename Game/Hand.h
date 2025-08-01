@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 #include <tuple>
 
 #include "../Models/Move.h"
@@ -12,7 +12,7 @@ class Hand
     Hand(Board *board) : board(board)
     {
     }
-    tuple<Response, POS_T, POS_T> get_cell() const //функция возращения тип событий действий игрока и выбраную клетку
+    tuple<Response, POS_T, POS_T> get_cell() const //С„СѓРЅРєС†РёСЏ РІРѕР·СЂР°С‰РµРЅРёСЏ С‚РёРї СЃРѕР±С‹С‚РёР№ РґРµР№СЃС‚РІРёР№ РёРіСЂРѕРєР° Рё РІС‹Р±СЂР°РЅСѓСЋ РєР»РµС‚РєСѓ
     {
         SDL_Event windowEvent;
         Response resp = Response::OK;
@@ -20,29 +20,29 @@ class Hand
         int xc = -1, yc = -1;
         while (true)
         {
-            if (SDL_PollEvent(&windowEvent)) //функция получения совершенного ивента
+            if (SDL_PollEvent(&windowEvent)) //С„СѓРЅРєС†РёСЏ РїРѕР»СѓС‡РµРЅРёСЏ СЃРѕРІРµСЂС€РµРЅРЅРѕРіРѕ РёРІРµРЅС‚Р°
             {
                 switch (windowEvent.type)
                 {
                 case SDL_QUIT: 
-                    resp = Response::QUIT; //ивент совершения выхода из приложения
+                    resp = Response::QUIT; //РёРІРµРЅС‚ СЃРѕРІРµСЂС€РµРЅРёСЏ РІС‹С…РѕРґР° РёР· РїСЂРёР»РѕР¶РµРЅРёСЏ
                     break;
-                case SDL_MOUSEBUTTONDOWN: //была нажата левая кнопка мыши
+                case SDL_MOUSEBUTTONDOWN: //Р±С‹Р»Р° РЅР°Р¶Р°С‚Р° Р»РµРІР°СЏ РєРЅРѕРїРєР° РјС‹С€Рё
                     x = windowEvent.motion.x;
                     y = windowEvent.motion.y;
                     xc = int(y / (board->H / 10) - 1);
                     yc = int(x / (board->W / 10) - 1);
                     if (xc == -1 && yc == -1 && board->history_mtx.size() > 1)
                     {
-                        resp = Response::BACK; //была нажата иконка назад
+                        resp = Response::BACK; //Р±С‹Р»Р° РЅР°Р¶Р°С‚Р° РёРєРѕРЅРєР° РЅР°Р·Р°Рґ
                     }
                     else if (xc == -1 && yc == 8)
                     {
-                        resp = Response::REPLAY; //была нажата кнопка переигровки
+                        resp = Response::REPLAY; //Р±С‹Р»Р° РЅР°Р¶Р°С‚Р° РєРЅРѕРїРєР° РїРµСЂРµРёРіСЂРѕРІРєРё
                     }
                     else if (xc >= 0 && xc < 8 && yc >= 0 && yc < 8)
                     {
-                        resp = Response::CELL; //была выбрана клетка
+                        resp = Response::CELL; //Р±С‹Р»Р° РІС‹Р±СЂР°РЅР° РєР»РµС‚РєР°
                     }
                     else
                     {
@@ -50,47 +50,47 @@ class Hand
                         yc = -1;
                     }
                     break;
-                case SDL_WINDOWEVENT: //был изменен размер окна
+                case SDL_WINDOWEVENT: //Р±С‹Р» РёР·РјРµРЅРµРЅ СЂР°Р·РјРµСЂ РѕРєРЅР°
                     if (windowEvent.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
                     {
                         board->reset_window_size();
                         break;
                     }
                 }
-                if (resp != Response::OK) //если не состояние ОК, то возращает ивент который был до этого
+                if (resp != Response::OK) //РµСЃР»Рё РЅРµ СЃРѕСЃС‚РѕСЏРЅРёРµ РћРљ, С‚Рѕ РІРѕР·СЂР°С‰Р°РµС‚ РёРІРµРЅС‚ РєРѕС‚РѕСЂС‹Р№ Р±С‹Р» РґРѕ СЌС‚РѕРіРѕ
                     break;
             }
         }
         return {resp, xc, yc};
     }
 
-    Response wait() const //ожидание инпута от игрока
+    Response wait() const //РѕР¶РёРґР°РЅРёРµ РёРЅРїСѓС‚Р° РѕС‚ РёРіСЂРѕРєР°
     {
         SDL_Event windowEvent;
         Response resp = Response::OK;
         while (true)
         {
-            if (SDL_PollEvent(&windowEvent)) //функция получения совершенного ивента
+            if (SDL_PollEvent(&windowEvent)) //С„СѓРЅРєС†РёСЏ РїРѕР»СѓС‡РµРЅРёСЏ СЃРѕРІРµСЂС€РµРЅРЅРѕРіРѕ РёРІРµРЅС‚Р°
             {
                 switch (windowEvent.type)
                 {
                 case SDL_QUIT:
-                    resp = Response::QUIT; //ивент совершения выхода из приложения
+                    resp = Response::QUIT; //РёРІРµРЅС‚ СЃРѕРІРµСЂС€РµРЅРёСЏ РІС‹С…РѕРґР° РёР· РїСЂРёР»РѕР¶РµРЅРёСЏ
                     break;
-                case SDL_WINDOWEVENT_SIZE_CHANGED: //размер окна приложения был изменен 
+                case SDL_WINDOWEVENT_SIZE_CHANGED: //СЂР°Р·РјРµСЂ РѕРєРЅР° РїСЂРёР»РѕР¶РµРЅРёСЏ Р±С‹Р» РёР·РјРµРЅРµРЅ 
                     board->reset_window_size();
                     break;
-                case SDL_MOUSEBUTTONDOWN: { //была нажата левая кнопка мыши
+                case SDL_MOUSEBUTTONDOWN: { //Р±С‹Р»Р° РЅР°Р¶Р°С‚Р° Р»РµРІР°СЏ РєРЅРѕРїРєР° РјС‹С€Рё
                     int x = windowEvent.motion.x;
                     int y = windowEvent.motion.y;
                     int xc = int(y / (board->H / 10) - 1);
                     int yc = int(x / (board->W / 10) - 1);
                     if (xc == -1 && yc == 8)
-                        resp = Response::REPLAY; //была нажата кнопка переигровки
+                        resp = Response::REPLAY; //Р±С‹Р»Р° РЅР°Р¶Р°С‚Р° РєРЅРѕРїРєР° РїРµСЂРµРёРіСЂРѕРІРєРё
                 }
                 break;
                 }
-                if (resp != Response::OK) //если не состояние ОК, то продолжает ожидание инпута от игрока
+                if (resp != Response::OK) //РµСЃР»Рё РЅРµ СЃРѕСЃС‚РѕСЏРЅРёРµ РћРљ, С‚Рѕ РїСЂРѕРґРѕР»Р¶Р°РµС‚ РѕР¶РёРґР°РЅРёРµ РёРЅРїСѓС‚Р° РѕС‚ РёРіСЂРѕРєР°
                     break; 
             }
         }

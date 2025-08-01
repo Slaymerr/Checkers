@@ -1,27 +1,27 @@
-#pragma once
+п»ї#pragma once
 #include <stdlib.h>
 
-typedef int8_t POS_T; //позиция на поле
+typedef int8_t POS_T; //РїРѕР·РёС†РёСЏ РЅР° РїРѕР»Рµ
 
-struct move_pos //структура, которая содержит информацию о ходе
+struct move_pos //СЃС‚СЂСѓРєС‚СѓСЂР°, РєРѕС‚РѕСЂР°СЏ СЃРѕРґРµСЂР¶РёС‚ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ С…РѕРґРµ
 {
-    POS_T x, y;             // from(откуда)
-    POS_T x2, y2;           // to(куда)
-    POS_T xb = -1, yb = -1; // beaten(координаты съеденной фигуры)
+    POS_T x, y;             // from(РѕС‚РєСѓРґР°)
+    POS_T x2, y2;           // to(РєСѓРґР°)
+    POS_T xb = -1, yb = -1; // beaten(РєРѕРѕСЂРґРёРЅР°С‚С‹ СЃСЉРµРґРµРЅРЅРѕР№ С„РёРіСѓСЂС‹)
 
-    move_pos(const POS_T x, const POS_T y, const POS_T x2, const POS_T y2) : x(x), y(y), x2(x2), y2(y2) //инициализатор ходов без координат съеденной фигуры
+    move_pos(const POS_T x, const POS_T y, const POS_T x2, const POS_T y2) : x(x), y(y), x2(x2), y2(y2) //РёРЅРёС†РёР°Р»РёР·Р°С‚РѕСЂ С…РѕРґРѕРІ Р±РµР· РєРѕРѕСЂРґРёРЅР°С‚ СЃСЉРµРґРµРЅРЅРѕР№ С„РёРіСѓСЂС‹
     {
     }
-    move_pos(const POS_T x, const POS_T y, const POS_T x2, const POS_T y2, const POS_T xb, const POS_T yb) //инициализатор ходов с съеденной фигурой
+    move_pos(const POS_T x, const POS_T y, const POS_T x2, const POS_T y2, const POS_T xb, const POS_T yb) //РёРЅРёС†РёР°Р»РёР·Р°С‚РѕСЂ С…РѕРґРѕРІ СЃ СЃСЉРµРґРµРЅРЅРѕР№ С„РёРіСѓСЂРѕР№
         : x(x), y(y), x2(x2), y2(y2), xb(xb), yb(yb)
     {
     }
 
-    bool operator==(const move_pos &other) const //оператор сравнения ходов
+    bool operator==(const move_pos &other) const //РѕРїРµСЂР°С‚РѕСЂ СЃСЂР°РІРЅРµРЅРёСЏ С…РѕРґРѕРІ
     {
         return (x == other.x && y == other.y && x2 == other.x2 && y2 == other.y2); 
     }
-    bool operator!=(const move_pos &other) const //оператор сравнения неравенства ходов
+    bool operator!=(const move_pos &other) const //РѕРїРµСЂР°С‚РѕСЂ СЃСЂР°РІРЅРµРЅРёСЏ РЅРµСЂР°РІРµРЅСЃС‚РІР° С…РѕРґРѕРІ
     {
         return !(*this == other);
     }
